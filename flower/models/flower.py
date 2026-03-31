@@ -238,8 +238,20 @@ class FLOWERVLA(pl.LightningModule):
             new_key = new_key.replace(".mlp.c_proj.", ".mlp.proj.")
             new_state_dict[new_key] = value
 
+        # Filter out keys with shape mismatches (e.g. proprio encoders from different action spaces)
+        current_state = self.state_dict()
+        filtered_state_dict = {}
+        skipped_keys = []
+        for key, value in new_state_dict.items():
+            if key in current_state and current_state[key].shape != value.shape:
+                skipped_keys.append(key)
+            else:
+                filtered_state_dict[key] = value
+        if skipped_keys:
+            print(f"  Skipped {len(skipped_keys)} keys with shape mismatch: {skipped_keys[:10]}")
+
         # Load the state dict with strict=False to handle mismatches
-        missing_keys, unexpected_keys = self.load_state_dict(new_state_dict, strict=False)
+        missing_keys, unexpected_keys = self.load_state_dict(filtered_state_dict, strict=False)
 
         # Log mismatches for debugging
         print(f"Pretrained weights loaded with the following issues:")
