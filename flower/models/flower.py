@@ -643,7 +643,7 @@ class FLOWERVLA(pl.LightningModule):
         """
         Encode proprioception based on action type.
         """
-        batch_size, _ = output_shape
+        batch_size = output_shape[0]
         default_dtype = next(self.parameters()).dtype
         
         if not self.use_proprio:
