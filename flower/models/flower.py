@@ -668,7 +668,7 @@ class FLOWERVLA(pl.LightningModule):
         for action_name, action_idx in self.action_space_index.action_spaces.items():
             mask = (at == action_idx)
             if mask.any():
-                encoded_proprio[mask] = self.proprio_encoders[action_name](proprio[mask])
+                encoded_proprio[mask] = self.proprio_encoders[action_name](proprio[mask]).to(encoded_proprio.dtype)
 
         return encoded_proprio
 
