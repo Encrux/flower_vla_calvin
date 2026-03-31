@@ -642,20 +642,33 @@ class FLOWERVLA(pl.LightningModule):
     def encode_proprio(self, proprio: torch.Tensor, action_type: torch.Tensor, output_shape) -> torch.Tensor:
         """
         Encode proprioception based on action type.
+
+        proprio: (B, 1, proprio_dim) or (B, proprio_dim)
+        action_type: (B, ...) — only first element per batch used
         """
         batch_size = output_shape[0]
         default_dtype = next(self.parameters()).dtype
-        
-        if not self.use_proprio:
-            return torch.zeros(batch_size, self.dit_dim, device=self.device)
-        
+
+        if not self.use_proprio or proprio is None:
+            return torch.zeros(batch_size, self.dit_dim, device=self.device, dtype=default_dtype)
+
+        # Flatten proprio to (B, proprio_dim)
+        if proprio.dim() == 3:
+            proprio = proprio[:, 0, :]  # take first timestep
+
+        # Reduce action_type to per-batch (B,) by taking first element
+        at = action_type
+        while at.dim() > 1:
+            at = at[:, 0]
+        at = at.long()
+
         encoded_proprio = torch.zeros(batch_size, self.dit_dim, device=self.device, dtype=default_dtype)
-        
+
         for action_name, action_idx in self.action_space_index.action_spaces.items():
-            mask = (action_type == action_idx)
+            mask = (at == action_idx)
             if mask.any():
-                encoded_proprio[mask] = self.proprio_encoders[action_name](proprio[mask]).squeeze(1)
-        
+                encoded_proprio[mask] = self.proprio_encoders[action_name](proprio[mask])
+
         return encoded_proprio
 
     def action_specific_adaln(self, global_cond: torch.Tensor, action_type: torch.Tensor) -> List[torch.Tensor]:
