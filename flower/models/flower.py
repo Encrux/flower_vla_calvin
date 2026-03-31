@@ -663,6 +663,7 @@ class FLOWERVLA(pl.LightningModule):
         at = at.long()
 
         encoded_proprio = torch.zeros(batch_size, self.dit_dim, device=self.device, dtype=default_dtype)
+        proprio = proprio.to(default_dtype)
 
         for action_name, action_idx in self.action_space_index.action_spaces.items():
             mask = (at == action_idx)
