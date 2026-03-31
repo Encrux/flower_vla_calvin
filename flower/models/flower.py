@@ -380,9 +380,7 @@ class FLOWERVLA(pl.LightningModule):
                 self.adaln[action_name] = SharedAdaLNController(dit_dim, global_conddim=dit_dim, use_cross_attn=use_cross_attn)
 
             if self.use_proprio:
-                # Add proprio encoder if needed for bimanual nav variant otherwise use zero encoder
-                self.proprio_encoders[action_name] = (Mlp(input_dim, dit_dim, out_features=dit_dim, drop=0.2).to(self.device) 
-                    if action_name == 'bimanual_nav' else ZeroEncoder(self.dit_dim, device=self.device))
+                self.proprio_encoders[action_name] = Mlp(self.lowdim_obs_dim, dit_dim, out_features=dit_dim, drop=0.2).to(self.device)
 
     def configure_optimizers(self):
         """Configure optimizers and schedulers"""
@@ -748,8 +746,8 @@ class FLOWERVLA(pl.LightningModule):
         
         # Get proprioception if enabled
         proprio = None
-        if self.use_proprio and 'proprio' in batch[self.obs_modalities]:
-            proprio = batch[self.obs_modalities]['proprio'].to(device).to(default_type)
+        if self.use_proprio and 'robot_obs' in batch:
+            proprio = batch['robot_obs'].to(device).to(default_type)
 
         return {
             'features': features,
@@ -818,6 +816,8 @@ class FLOWERVLA(pl.LightningModule):
             },
             "lang_text": [goal["lang_text"]]
         }
+        if "robot_obs" in obs:
+            batch["robot_obs"] = obs["robot_obs"]
         features = self.encode_observations(batch)
         
         # Generate initial noise
